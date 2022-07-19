@@ -61,6 +61,11 @@ public class ThermalPrinterCordovaPlugin extends CordovaPlugin {
                 } else if (action.equals("bitmapToHexadecimalString")) {
                     ThermalPrinterCordovaPlugin.this.bitmapToHexadecimalString(callbackContext, args.getJSONObject(0));
                 }
+
+                else if (action.startsWith("openCashBox")) {
+                    ThermalPrinterCordovaPlugin.this.openCashBox(callbackContext, args.getJSONObject(0));
+                }
+                
             } catch (JSONException exception) {
                 callbackContext.error(exception.getMessage());
             }
@@ -204,6 +209,9 @@ public class ThermalPrinterCordovaPlugin extends CordovaPlugin {
             } else {
                 printer.printFormattedText(data.getString("text"), dotsFeedPaper);
             }
+
+            printer.disconnectPrinter();
+
             callbackContext.success();
         } catch (EscPosConnectionException e) {
             callbackContext.error(new JSONObject(new HashMap<String, Object>() {{
@@ -363,4 +371,33 @@ public class ThermalPrinterCordovaPlugin extends CordovaPlugin {
         }
         return true;
     }
+
+
+    
+    private void openCashBox(CallbackContext callbackContext, JSONObject data) throws JSONException {
+        EscPosPrinter printer = this.getPrinter(callbackContext, data);
+        DeviceConnection deviceConnection = this.getPrinterConnection(callbackContext, data);
+        if (deviceConnection == null) {
+            throw new JSONException("Device not found");
+        }
+
+        try {
+            deviceConnection.write(new byte[]{0x1B, 0x70, 0x00, 0x3C, (byte) 0xFF});
+            deviceConnection.send(100);
+
+            printer.disconnectPrinter();
+
+
+            callbackContext.success();
+        } catch (EscPosConnectionException e) {
+            callbackContext.error(new JSONObject(new HashMap<String, Object>() {{
+                put("error", e.getMessage());
+            }}));
+        } catch (Exception e) {
+            callbackContext.error(new JSONObject(new HashMap<String, Object>() {{
+                put("error", e.getMessage());
+            }}));
+        }
+    }
+    
 }
